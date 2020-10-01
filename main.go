@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"strings"
 
 	"github.com/lxn/walk"
 	. "github.com/lxn/walk/declarative"
@@ -22,6 +23,9 @@ func main() {
 		Title:    "Image Base64 Converter",
 		Size:     Size{500, 800},
 		Layout:   VBox{},
+		OnDropFiles: func(files []string) {
+			textArea.SetText(strings.Join(files, "\r\n"))
+		},
 		Children: []Widget{
 			Composite{
 				AssignTo: &hideableComposite,
@@ -38,6 +42,20 @@ func main() {
 					Composite{
 						Layout: HBox{SpacingZero: true, MarginsZero: true},
 						Children: []Widget{
+							PushButton{
+								Text: "...",
+								OnClicked: func() {
+									dlgFile := new(walk.FileDialog)
+
+									if ok, err := dlgFile.ShowOpen(mw); err != nil {
+										println(dlgFile.FilePath, err)
+									} else if !ok {
+										println(dlgFile.FilePath, err)
+									}
+
+									inputFileLocationInput.SetText(dlgFile.FilePath)
+								},
+							},
 							LineEdit{
 								AssignTo:    &inputFileLocationInput,
 								ToolTipText: "e.g. img/exit.png",
