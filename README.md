@@ -2,6 +2,11 @@
 
 Base64-Image-Converter is a Windows UI written in golang to convert images into base64 text.
 
+Screenshot:
+
+![screenshot](./img/screenshot.png "Screenshot")
+
+
 
 ## Installation
 
