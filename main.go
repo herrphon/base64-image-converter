@@ -8,27 +8,44 @@ import (
 	. "github.com/lxn/walk/declarative"
 )
 
-var (
-	mw                     *walk.MainWindow
-	hideableComposite      *walk.Composite
-	visible                = true
-	inputFileLocationInput *walk.LineEdit
-	textArea               *walk.TextEdit
-	outputImageView        *walk.ImageView
-)
 
 func main() {
+	mw := new(MyMainWindow)
+	var openAction *walk.Action
+
 	if _, err := (MainWindow{
-		AssignTo: &mw,
+		AssignTo: &mw.MainWindow,
 		Title:    "Image Base64 Converter",
+		MenuItems: []MenuItem{
+			Menu{
+				Text: "&File",
+				Items: []MenuItem{
+					Action{
+						AssignTo:    &openAction,
+						Text:        "Exit",
+						OnTriggered: func() { mw.Close() },
+					},
+				},
+			},
+			Menu{
+				Text: "&Help",
+
+				Items: []MenuItem{
+					Action{
+						Text:        "About",
+						OnTriggered: mw.aboutAction_Triggered,
+					},
+				},
+			},
+		},
 		Size:     Size{500, 800},
 		Layout:   VBox{},
 		OnDropFiles: func(files []string) {
-			textArea.SetText(strings.Join(files, "\r\n"))
+			mw.textArea.SetText(strings.Join(files, "\r\n"))
 		},
 		Children: []Widget{
 			Composite{
-				AssignTo: &hideableComposite,
+				AssignTo: &mw.hideableComposite,
 				Layout:   HBox{SpacingZero: true, MarginsZero: true},
 				Children: []Widget{
 					Label{
@@ -53,22 +70,22 @@ func main() {
 										println(dlgFile.FilePath, err)
 									}
 
-									inputFileLocationInput.SetText(dlgFile.FilePath)
+									mw.inputFileLocationInput.SetText(dlgFile.FilePath)
 								},
 							},
 							LineEdit{
-								AssignTo:    &inputFileLocationInput,
+								AssignTo:    &mw.inputFileLocationInput,
 								ToolTipText: "e.g. img/exit.png",
 								OnKeyDown: func(key walk.Key) {
 									if key == walk.KeyReturn {
-										convertAction()
+										mw.convertAction()
 									}
 								},
 							},
 							HSpacer{Size: 3},
 							PushButton{
 								Text:      "Convert",
-								OnClicked: convertAction,
+								OnClicked: mw.convertAction,
 							},
 						},
 					},
@@ -77,18 +94,25 @@ func main() {
 
 			VSpacer{Size: 3},
 
-			TextEdit{AssignTo: &textArea},
+			TextEdit{
+				AssignTo: &mw.textArea,
+				OnMouseDown: func(x, y int, button walk.MouseButton) {
+					// fmt.Printf("position: %d - %d \n", x, y)
+				},
+				ToolTipText: "Click to copy to clipboard.",
+			},
 
 			PushButton{
 				Text: "Base64 to Image",
 				OnClicked: func() {
-					drawImage(textArea, outputImageView)
+					drawImage(mw.textArea, mw.outputImageView)
 				},
 			},
+
 			VSpacer{Size: 3},
 
 			ImageView{
-				AssignTo:   &outputImageView,
+				AssignTo:   &mw.outputImageView,
 				Background: SolidColorBrush{Color: walk.RGB(222, 222, 222)},
 				Margin:     40,
 				Mode:       ImageViewModeIdeal,
@@ -100,32 +124,41 @@ func main() {
 
 }
 
-func convertAction() {
-	toggleVisibility(hideableComposite)
+type MyMainWindow struct {
+	*walk.MainWindow
+	hideableComposite      *walk.Composite
+	inputFileLocationInput *walk.LineEdit
+	textArea               *walk.TextEdit
+	outputImageView        *walk.ImageView
+	visible                bool
+}
 
-	fileLocation := inputFileLocationInput.Text()
+func (mw *MyMainWindow) convertAction() {
+	mw.toggleVisibility(mw.hideableComposite)
+
+	fileLocation := mw.inputFileLocationInput.Text()
 	base64, err := getBase64FromImage(fileLocation)
 	if err != nil {
-		textArea.SetText(err.Error())
+		mw.textArea.SetText(err.Error())
 	} else {
-		textArea.SetText(base64)
-		drawImage(textArea, outputImageView)
+		mw.textArea.SetText(base64)
+		drawImage(mw.textArea, mw.outputImageView)
 	}
 }
 
-func toggleVisibility(hideableComposite *walk.Composite) {
+func (mw *MyMainWindow) toggleVisibility(hideableComposite *walk.Composite) {
 	children := hideableComposite.Children()
-	if visible {
+	if mw.visible {
 		hideableComposite.SetBounds(walk.Rectangle{1, 1, 2, 2})
 		// children.Clear()
-		visible = false
+		mw.visible = false
 	} else {
 		// Add something and remove it right away to make the hideableComposite reappear.
 		label, _ := walk.NewLabel(hideableComposite)
 		label.SetText("...")
 		children.Add(label)
 		children.RemoveAt(1)
-		visible = true
+		mw.visible = true
 	}
 }
 
@@ -143,4 +176,8 @@ func drawImage(textArea *walk.TextEdit, outputImageView *walk.ImageView) {
 			outputImageView.SetImage(ic)
 		}
 	}
+}
+
+func (mw *MyMainWindow) aboutAction_Triggered() {
+	walk.MsgBox(mw, "About", "Version 1.0.0", walk.MsgBoxIconInformation)
 }
