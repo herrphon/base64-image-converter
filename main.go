@@ -1,19 +1,29 @@
 package main
 
 import (
+	"fmt"
 	"log"
+	"os"
 	"strings"
 
 	"github.com/lxn/walk"
 	. "github.com/lxn/walk/declarative"
 )
 
+var (
+	Version = "1.0.0"
+)
 
 func main() {
 	mw := new(MyMainWindow)
-	var openAction *walk.Action
 
-	if _, err := (MainWindow{
+	var bold = Font{
+		Family: "Segoe UI",
+		PointSize: 8,
+		Bold: true,
+	}
+
+	if err := (MainWindow{
 		AssignTo: &mw.MainWindow,
 		Title:    "Image Base64 Converter",
 		MenuItems: []MenuItem{
@@ -21,7 +31,6 @@ func main() {
 				Text: "&File",
 				Items: []MenuItem{
 					Action{
-						AssignTo:    &openAction,
 						Text:        "Exit",
 						OnTriggered: func() { mw.Close() },
 					},
@@ -50,6 +59,7 @@ func main() {
 				Children: []Widget{
 					Label{
 						Text: "Enter image location below",
+						Font: bold,
 					},
 				},
 			},
@@ -61,6 +71,7 @@ func main() {
 						Children: []Widget{
 							PushButton{
 								Text: "...",
+								Font: bold,
 								OnClicked: func() {
 									dlgFile := new(walk.FileDialog)
 
@@ -85,6 +96,7 @@ func main() {
 							HSpacer{Size: 3},
 							PushButton{
 								Text:      "Convert",
+								Font: bold,
 								OnClicked: mw.convertAction,
 							},
 						},
@@ -104,6 +116,7 @@ func main() {
 
 			PushButton{
 				Text: "Base64 to Image",
+				Font: bold,
 				OnClicked: func() {
 					drawImage(mw.textArea, mw.outputImageView)
 				},
@@ -118,10 +131,16 @@ func main() {
 				Mode:       ImageViewModeIdeal,
 			},
 		},
-	}.Run()); err != nil {
+	}.Create()); err != nil {
 		log.Fatal(err)
 	}
 
+	if len(os.Args) == 2 {
+		argumentOne := os.Args[1]
+		mw.inputFileLocationInput.SetText(argumentOne)
+	}
+
+	mw.Run()
 }
 
 type MyMainWindow struct {
@@ -179,5 +198,5 @@ func drawImage(textArea *walk.TextEdit, outputImageView *walk.ImageView) {
 }
 
 func (mw *MyMainWindow) aboutAction_Triggered() {
-	walk.MsgBox(mw, "About", "Version 1.0.0", walk.MsgBoxIconInformation)
+	walk.MsgBox(mw, "About", fmt.Sprintf("Version %s", Version), walk.MsgBoxIconInformation)
 }
